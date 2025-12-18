@@ -10,6 +10,4 @@ runStateT' (StateT f) = f
 
 main = do
   let (st :: StateT String IO Int) = return' 1
-  result <- runStateT' st "Hello"
-  print result
-  runStateT' st "Hello" -- Same thing to above two lines
+  print =<< runStateT' st "Hello"
