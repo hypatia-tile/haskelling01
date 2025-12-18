@@ -1,6 +1,5 @@
--- Now that, I understand fundamental in StateT
---  except some advansed usage like lifting inner monad UnsupportedOperation
--- In this example, I will try to create 'return' function for StateT
+-- Now that I understand the foundation of StateT, except some advanced usage like lifting.
+-- In this example, I will try to create 'return' and 'runStateT' functions for StateT
 import Control.Monad.State.Strict
 
 return' :: (Monad m) => a -> StateT s m a
