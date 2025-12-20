@@ -1,7 +1,7 @@
 -- More interesting example
 import Control.Monad.Trans.State
 
-{- | We consider a stateful computation taht performs safe division.
+{- | We consider a stateful computation that performs safe division.
       The quotient is a new state, and we also return a log message.
       I try to use StateT with Either as the inner monad in following way.
 -}
@@ -15,6 +15,13 @@ safeDiv x y = Right (show x ++ " divided by " ++ show y ++ " is " ++ show (x `di
 safeDivState :: Int -> StateT Int (Either String) String
 safeDivState y = StateT $ safeDiv y
 
+{- | Change the context of the stateful computation from Either to IO
+    Intuitive:
+      The safeDivState computation has a context of Either String,
+      which means it can fail with an error message.
+      We want to change this context to IO, so that we can perform
+      side effect like logging.
+-}
 mapSafeDiv :: Either String (String, Int) -> IO ((), Int)
 mapSafeDiv x = do
   putStrLn "Division started"
@@ -31,6 +38,9 @@ mapSafeDiv x = do
       putStrLn $ "Success: " ++ fst resp
       return (snd resp)
 
+{- | A stateful computation that perform safe division with logging.
+      Switch the context from Either to IO using mapStateT.
+-}
 loggedSafeDiv :: StateT Int IO ()
 loggedSafeDiv = mapStateT mapSafeDiv $ safeDivState 10
 
