@@ -42,5 +42,5 @@ jobs:
             ### Articles I read today
             - [ ] Link 1
             - [ ] Link 2
-            PINNED: false
-            CLOSE_PREVIOUS: false
+          PINNED: false
+          CLOSE_PREVIOUS: false
