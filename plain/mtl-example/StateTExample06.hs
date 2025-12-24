@@ -1,9 +1,16 @@
 -- In this example, I will rewrite the StateT's instantiations for important type classes.
 import Control.Monad.Trans.State.Lazy hiding (StateT (..))
 
--- | Define the StateT type
+{- | Define the StateT type
+| StateT is essentailly a function that takes a state of type 's'
+  and returns monadic value 'm' containing a tuple of a result of type 'a' and the new statte 's'.
+-}
 newtype StateT s m a = StateT {runStateT :: s -> m (a, s)}
 
+{- | To instantiate StateT as a Functor
+     I need to utilize lazy '~' pattern matching to avoid strict evaluation
+     'f' is the functioon from 's' to 'm (a, s)'
+-}
 instance (Functor m) => Functor (StateT s m) where
   fmap f g = StateT $ \x -> fmap (\ ~(a, s) -> (f a, s)) (runStateT g x)
 
