@@ -23,8 +23,8 @@ evalArith exprs = case foldr (flip go) [] exprs of
   xs -> Left $ "Stack did not end with a single value\n remaining stack: " ++ show xs
  where
   go :: [ArithExpr] -> ArithExpr -> [ArithExpr]
-  go (Push x : Add : rest) (Push y) = Push (x + y) : rest
-  go (Push x : Sub : rest) (Push y) = Push (y - x) : rest
+  go (Push x : Add : rest) (Push y) = go rest $ Push (x + y)
+  go (Push x : Sub : rest) (Push y) = go rest $ Push (x - y)
   go stack x = x : stack
 
 arithShell :: StateT [ArithExpr] (ExceptT String IO) ()
