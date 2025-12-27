@@ -1,10 +1,10 @@
 module Main where
 
-import MyLib (AppState (..), mainLoop)
+import MyLib (AppMode (..), AppState (..), mainLoop)
 
 main :: IO ()
 main = do
   let
     appState :: AppState
-    appState = RegularAppState [] (return "init")
+    appState = AppState{commandHistory = [], appStateMode = RegularMode}
   mainLoop appState

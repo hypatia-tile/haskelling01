@@ -1,0 +1,47 @@
+module Repl.Arithmetic where
+
+import Control.Monad.Except (ExceptT, throwError)
+import Control.Monad.State.Strict
+
+data ArithExpr
+  = Push Int
+  | Add
+  | Sub
+  deriving (Show)
+
+evalArith :: [ArithExpr] -> Either String Int
+evalArith exprs = case foldr (flip go) [] exprs of
+  [Push n] -> Right n
+  xs -> Left $ "Stack did not end with a single value\n remaining stack: " ++ show xs
+ where
+  go :: [ArithExpr] -> ArithExpr -> [ArithExpr]
+  go (Push x : Add : rest) (Push y) = Push (x + y) : rest
+  go (Push x : Sub : rest) (Push y) = Push (y - x) : rest
+  go stack x = x : stack
+
+arithShell :: StateT [ArithExpr] (ExceptT String IO) ()
+arithShell = do
+  exprs' <- arithInputLoop []
+  liftIO $ putStrLn $ "Final expressions: " ++ show exprs'
+  return ()
+ where
+  arithInputLoop :: [ArithExpr] -> StateT [ArithExpr] (ExceptT String IO) Int
+  arithInputLoop exprs = do
+    liftIO $ putStrLn $ "Current expressions: " ++ show (reverse exprs)
+    liftIO $ putStrLn "Arith> "
+    input <- liftIO getLine
+    case words input of
+      ["push", nStr] -> case reads nStr of
+        [(n, "")] -> arithInputLoop (Push n : exprs)
+        _ -> do
+          liftIO $ putStrLn "Invalid number"
+          arithInputLoop exprs
+      ["add"] -> arithInputLoop (Add : exprs)
+      ["sub"] -> arithInputLoop (Sub : exprs)
+      ["eval"] -> do
+        case evalArith exprs of
+          Left err -> do
+            throwError err
+          Right val -> return val
+      _ -> do
+        throwError "Unknown command"

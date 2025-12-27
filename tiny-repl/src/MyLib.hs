@@ -1,8 +1,9 @@
-module MyLib (AppState (..), mainLoop) where
+module MyLib (AppMode (..), AppState (..), mainLoop) where
 
 import Control.Monad (forM_)
 import Control.Monad.Except (ExceptT, runExceptT, throwError)
 import Control.Monad.State.Strict
+import Repl.Arithmetic
 
 mainLoop :: AppState -> IO ()
 mainLoop initialState = do
@@ -13,22 +14,24 @@ mainLoop initialState = do
     Left err -> do
       putStrLn $ "Error: " ++ show err
       mainLoop initialState
-    Right ((), newState) -> case newState of
-      ExitAppState -> putStrLn "Exiting..."
-      ArithAppState -> do
-        putStrLn "Entering arithmetic shell..."
-        arithResult <- runExceptT $ evalStateT arithShell []
-        case arithResult of
-          Left err -> putStrLn $ "Arithmetic shell error: " ++ err
-          Right _ -> putStrLn "Exiting arithmetic shell."
-        mainLoop newState
-      _ -> do
-        putStrLn "History:"
-        forM_ (history newState) putStrLn
-        putStrLn "Executing command..."
-        print =<< execute newState
-        putStrLn "Continuing..."
-        mainLoop newState
+    Right ((), newState) -> do
+      putStrLn "History so far: "
+      forM_ (commandHistory newState) putStrLn
+      case appStateMode newState of
+        ExitMode -> putStrLn "Exiting..."
+        mode -> do
+          case mode of
+            ArithMode -> do
+              putStrLn "Entering arithmetic shell..."
+              arithResult <- runExceptT $ evalStateT arithShell []
+              case arithResult of
+                Left err -> putStrLn $ "Arithmetic shell error: " ++ err
+                Right _ -> putStrLn "Exiting arithmetic shell."
+            RegularMode -> do
+              putStrLn "Executing command..."
+              putStrLn $ "You entered: " ++ input
+              putStrLn "Continuing..."
+          mainLoop newState
 
 interpret :: String -> AppM ()
 interpret input = StateT $ \state' ->
@@ -38,56 +41,16 @@ interpret input = StateT $ \state' ->
 
 type AppM = StateT AppState (ExceptT AppError IO)
 
-data ArithExpr
-  = Push Int
-  | Add
-  | Sub
-  deriving (Show)
-
 data AppState
-  = RegularAppState
-      { history :: [String]
-      , execute :: IO String
-      }
-  | ArithAppState
-  | ExitAppState
+  = AppState
+  { commandHistory :: [String]
+  , appStateMode :: AppMode
+  }
 
-evalArith :: [ArithExpr] -> Either String Int
-evalArith exprs = case foldr (flip go) [] exprs of
-  [Push n] -> Right n
-  xs -> Left $ "Stack did not end with a single value\n remaining stack: " ++ show xs
- where
-  go :: [ArithExpr] -> ArithExpr -> [ArithExpr]
-  go (Push x : Add : rest) (Push y) = Push (x + y) : rest
-  go (Push x : Sub : rest) (Push y) = Push (y - x) : rest
-  go stack x = x : stack
-
-arithShell :: StateT [ArithExpr] (ExceptT String IO) ()
-arithShell = do
-  exprs' <- arithInputLoop []
-  liftIO $ putStrLn $ "Final expressions: " ++ show exprs'
-  return ()
- where
-  arithInputLoop :: [ArithExpr] -> StateT [ArithExpr] (ExceptT String IO) Int
-  arithInputLoop exprs = do
-    liftIO $ putStrLn $ "Current expressions: " ++ show (reverse exprs)
-    liftIO $ putStrLn "Arith> "
-    input <- liftIO getLine
-    case words input of
-      ["push", nStr] -> case reads nStr of
-        [(n, "")] -> arithInputLoop (Push n : exprs)
-        _ -> do
-          liftIO $ putStrLn "Invalid number"
-          arithInputLoop exprs
-      ["add"] -> arithInputLoop (Add : exprs)
-      ["sub"] -> arithInputLoop (Sub : exprs)
-      ["eval"] -> do
-        case evalArith exprs of
-          Left err -> do
-            throwError err
-          Right val -> return val
-      _ -> do
-        throwError "Unknown command"
+data AppMode
+  = RegularMode
+  | ArithMode
+  | ExitMode
 
 data AppCommand
   = Exit
@@ -105,14 +68,10 @@ appCommand :: String -> AppState -> Either AppError AppState
 appCommand cmd state'
   | null cmd = Left (ParseError "Empty command")
   | otherwise = case parseAppCommand cmd of
-      Right Exit -> Right ExitAppState
+      Right Exit -> Right $ state'{appStateMode = ExitMode}
       Right Hello ->
-        Right $
-          RegularAppState
-            { history = history state' ++ [cmd]
-            , execute = return "Hello, World!"
-            }
-      Right Arith -> Right ArithAppState
+        Right $ state'{appStateMode = RegularMode}
+      Right Arith -> Right $ state'{appStateMode = ArithMode}
       Left err -> Left err
 
 data AppError
