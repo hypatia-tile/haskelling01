@@ -1,8 +1,10 @@
 module Main where
 
-import MyLib (mainLoop)
+import MyLib (AppState (..), mainLoop)
 
 main :: IO ()
 main = do
-  putStrLn "Hello, This is Tiny REPL!"
-  mainLoop
+  let
+    appState :: AppState
+    appState = RegularAppState [] (return "init")
+  mainLoop appState

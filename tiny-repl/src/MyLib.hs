@@ -1,41 +1,55 @@
-module MyLib (mainLoop) where
+module MyLib (AppState (..), mainLoop) where
 
-import Control.Monad.Except
+import Control.Monad (forM_)
+import Control.Monad.Except (ExceptT, runExceptT, throwError)
+import Control.Monad.State.Strict
 
--- import Control.Monad.Except
--- import Control.Monad.State
-
-mainLoop :: IO ()
-mainLoop = do
+mainLoop :: AppState -> IO ()
+mainLoop initialState = do
   putStrLn "Input something (or type 'exit' to quit):"
   input <- getLine
-  result <- runExceptT (interpret input)
+  result <- runExceptT $ runStateT (interpret input) initialState
   case result of
     Left err -> do
       putStrLn $ "Error: " ++ show err
-      mainLoop
-    Right appState -> case appState of
+      mainLoop initialState
+    Right ((), newState) -> case newState of
       ExitAppState -> putStrLn "Exiting..."
-      RegularAppState output' -> do
-        putStrLn $ "Output: " ++ output'
-        mainLoop
+      _ -> do
+        putStrLn "History:"
+        forM_ (history newState) putStrLn
+        putStrLn "Executing command..."
+        print =<< execute newState
+        putStrLn "Continuing..."
+        mainLoop newState
 
--- TODO: Implement a real interpreter
-interpret :: String -> ExceptT AppError IO AppState
-interpret input = case input of
-  "exit" -> ExceptT $ return (Right ExitAppState)
-  "hello" -> ExceptT $ return (Right (RegularAppState "Hello, World!"))
-  _ -> throwError (UnknownCommand input)
+interpret :: String -> AppM ()
+interpret input = StateT $ \state' ->
+  case appCommand input state' of
+    Left err -> throwError err
+    Right newState -> return ((), newState)
 
--- TODO: Define a proper AppState and AppError
+type AppM = StateT AppState (ExceptT AppError IO)
+
 data AppState
   = RegularAppState
-      { output :: String
+      { history :: [String]
+      , execute :: IO String
       }
   | ExitAppState
+
+appCommand :: String -> AppState -> Either AppError AppState
+appCommand cmd state'
+  | null cmd = Left (ParseError "Empty command")
+  | otherwise = case cmd of
+      "exit" -> Right ExitAppState
+      "hello" -> Right $ RegularAppState (cmd : history state') (return "world")
+      "add" -> Right $ RegularAppState (cmd : history state') (return "added")
+      "sub" -> Right $ RegularAppState (cmd : history state') (return "subtracted")
+      _ -> Left (UnknownCommand cmd)
 
 data AppError
   = ParseError String
   | UnknownCommand String
-  | DomayinError String
+  | DomainError String
   deriving (Show)
