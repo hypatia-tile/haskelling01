@@ -4,7 +4,7 @@ import Control.Monad.Except (ExceptT (..), runExceptT, throwError)
 import Control.Monad.State.Strict
 
 data ArithExpr
-  = Push Int
+  = ANum Int
   | Add
   | Sub
   deriving (Show)
@@ -19,12 +19,12 @@ arithAppShell = do
 
 evalArith :: [ArithExpr] -> Either String Int
 evalArith exprs = case foldr (flip go) [] exprs of
-  [Push n] -> Right n
+  [ANum n] -> Right n
   xs -> Left $ "Stack did not end with a single value\n remaining stack: " ++ show xs
  where
   go :: [ArithExpr] -> ArithExpr -> [ArithExpr]
-  go (Push x : Add : rest) (Push y) = go rest $ Push (x + y)
-  go (Push x : Sub : rest) (Push y) = go rest $ Push (x - y)
+  go (ANum x : Add : rest) (ANum y) = go rest $ ANum (x + y)
+  go (ANum x : Sub : rest) (ANum y) = go rest $ ANum (x - y)
   go stack x = x : stack
 
 arithShell :: StateT [ArithExpr] (ExceptT String IO) ()
@@ -40,7 +40,7 @@ arithShell = do
     input <- liftIO getLine
     case words input of
       ["push", nStr] -> case reads nStr of
-        [(n, "")] -> arithInputLoop (Push n : exprs)
+        [(n, "")] -> arithInputLoop (ANum n : exprs)
         _ -> do
           liftIO $ putStrLn "Invalid number"
           arithInputLoop exprs
