@@ -21,16 +21,8 @@ mainLoop initialState = do
         ExitMode -> putStrLn "Exiting..."
         mode -> do
           case mode of
-            ArithMode -> do
-              putStrLn "Entering arithmetic shell..."
-              arithResult <- runExceptT $ evalStateT arithShell []
-              case arithResult of
-                Left err -> putStrLn $ "Arithmetic shell error: " ++ err
-                Right _ -> putStrLn "Exiting arithmetic shell."
-            RegularMode -> do
-              putStrLn "Executing command..."
-              putStrLn $ "You entered: " ++ input
-              putStrLn "Continuing..."
+            ArithMode -> arithAppShell
+            RegularMode -> regularAppShell input
           mainLoop newState
 
 interpret :: String -> AppM ()
@@ -73,6 +65,12 @@ appCommand cmd state'
         Right $ state'{appStateMode = RegularMode}
       Right Arith -> Right $ state'{appStateMode = ArithMode}
       Left err -> Left err
+
+regularAppShell :: String -> IO ()
+regularAppShell input = do
+  putStrLn "Executing command..."
+  putStrLn $ "You entered: " ++ input
+  putStrLn "Continuing..."
 
 data AppError
   = ParseError String

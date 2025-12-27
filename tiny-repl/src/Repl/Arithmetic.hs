@@ -1,6 +1,6 @@
 module Repl.Arithmetic where
 
-import Control.Monad.Except (ExceptT, throwError)
+import Control.Monad.Except (ExceptT (..), runExceptT, throwError)
 import Control.Monad.State.Strict
 
 data ArithExpr
@@ -8,6 +8,14 @@ data ArithExpr
   | Add
   | Sub
   deriving (Show)
+
+arithAppShell :: IO ()
+arithAppShell = do
+  putStrLn "Entering arithmetic shell..."
+  arithResult <- runExceptT $ evalStateT arithShell []
+  case arithResult of
+    Left err -> putStrLn $ "Arithmetic shell error: " ++ err
+    Right _ -> putStrLn "Exiting arithmetic shell."
 
 evalArith :: [ArithExpr] -> Either String Int
 evalArith exprs = case foldr (flip go) [] exprs of
