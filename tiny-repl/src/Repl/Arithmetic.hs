@@ -12,7 +12,7 @@ data ArithExpr
 arithAppShell :: IO ()
 arithAppShell = do
   putStrLn "Entering arithmetic shell..."
-  arithResult <- runExceptT $ evalStateT arithShell []
+  arithResult <- runExceptT $ evalStateT arithEvalInput []
   case arithResult of
     Left err -> putStrLn $ "Arithmetic shell error: " ++ err
     Right _ -> putStrLn "Exiting arithmetic shell."
@@ -27,8 +27,8 @@ evalArith exprs = case foldr (flip go) [] exprs of
   go (ANum x : Sub : rest) (ANum y) = go rest $ ANum (x - y)
   go stack x = x : stack
 
-arithShell :: StateT [ArithExpr] (ExceptT String IO) ()
-arithShell = do
+arithEvalInput :: StateT [ArithExpr] (ExceptT String IO) ()
+arithEvalInput = do
   exprs' <- arithInputLoop []
   liftIO $ putStrLn $ "Final expressions: " ++ show exprs'
   return ()
