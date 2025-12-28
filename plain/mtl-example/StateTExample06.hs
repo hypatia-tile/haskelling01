@@ -22,12 +22,27 @@ instance (Functor m, Monad m) => Applicative (StateT s m) where
     return (f x, s'')
 
 instance (Monad m) => Monad (StateT s m) where
+  -- g :: StateT s m a
+  -- f :: a -> StateT s m b
+  -- TODO: Why this deinition work naturally?
+  -- The Monad's law may following from the fact that m is also a Monad
   g >>= f = StateT $ \s -> do
+    -- runStateT g s :: m (a, s)
     (a, newState) <- runStateT g s
+    -- f :: a -> StateT s m b
+    -- a :: a
+    -- f a :: StateT s m b
+    -- runStateT (f a) :: s -> m (b, s)
+    -- runStateT (f a) newState :: m (b, s)
     runStateT (f a) newState
 
-stateCompute :: StateT Int IO String
-stateCompute = do
+{- | 'statefulCounter' accepts a value of type 'Int' as state and:
+        (1) Announce the current sate and return the value represented as a 'String'
+        (2) Increment the state by 1
+        These operation are performed within the 'IO' context.
+-}
+statefulCounter :: StateT Int IO String
+statefulCounter = do
   StateT $ \s -> do
     putStrLn $ "CurrentState: " ++ show s
     return ("Value is " ++ show s, s + 1)
@@ -37,8 +52,8 @@ main = do
   let
     computation :: StateT Int IO String
     computation = do
-      stateCompute
-      stateCompute
+      statefulCounter
+      statefulCounter
   result <- runStateT computation 1
   putStrLn $ "Final Result: " ++ show result
 
