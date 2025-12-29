@@ -34,6 +34,13 @@ interpret input = StateT $ \state' ->
   case appCommand input state' of
     Left err -> throwError err
     Right newState -> return ((), newState)
+ where
+  appCommand :: String -> AppState -> Either AppError AppState
+  appCommand cmd state'
+    | null cmd = Left (ParseError "Empty command")
+    | otherwise = do
+        command <- parseAppCommand cmd
+        return $ state'{appStateMode = cmdMode command}
 
 type AppM = StateT AppState (ExceptT AppError IO)
 
@@ -69,13 +76,6 @@ parseAppCommand input =
   case find (\cmd -> cmdName cmd == input) allCommands of
     Just cmd -> Right cmd
     Nothing -> Left (UnknownCommand $ "Unknown command: " ++ input)
-
-appCommand :: String -> AppState -> Either AppError AppState
-appCommand cmd state'
-  | null cmd = Left (ParseError "Empty command")
-  | otherwise = do
-      command <- parseAppCommand cmd
-      return $ state'{appStateMode = cmdMode command}
 
 regularAppShell :: String -> IO ()
 regularAppShell input = do
