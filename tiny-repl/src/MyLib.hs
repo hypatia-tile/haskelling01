@@ -3,6 +3,7 @@ module MyLib (AppMode (..), AppState (..), mainLoop) where
 import Control.Monad (forM_)
 import Control.Monad.Except (ExceptT, runExceptT, throwError)
 import Control.Monad.State.Strict
+import Data.List (find)
 import Repl.Arithmetic
 
 mainLoop :: AppState -> IO ()
@@ -44,27 +45,31 @@ data AppMode
   | ArithMode
   | ExitMode
 
-data AppCommand
-  = Exit
-  | Hello
-  | Arith
+data AppCommand = AppCommand
+  { cmdName :: String
+  , cmdMode :: AppMode
+  }
+
+exitCommand, helloCommand, arithCommand :: AppCommand
+exitCommand = AppCommand "exit" ExitMode
+helloCommand = AppCommand "hello" RegularMode
+arithCommand = AppCommand "arith" ArithMode
+
+allCommands :: [AppCommand]
+allCommands = [exitCommand, helloCommand, arithCommand]
 
 parseAppCommand :: String -> Either AppError AppCommand
-parseAppCommand cmd
-  | cmd == "exit" = Right Exit
-  | cmd == "hello" = Right Hello
-  | cmd == "arith" = Right Arith
-  | otherwise = Left (UnknownCommand $ "Unknown command: " ++ cmd)
+parseAppCommand input =
+  case find (\cmd -> cmdName cmd == input) allCommands of
+    Just cmd -> Right cmd
+    Nothing -> Left (UnknownCommand $ "Unknown command: " ++ input)
 
 appCommand :: String -> AppState -> Either AppError AppState
 appCommand cmd state'
   | null cmd = Left (ParseError "Empty command")
-  | otherwise = case parseAppCommand cmd of
-      Right Exit -> Right $ state'{appStateMode = ExitMode}
-      Right Hello ->
-        Right $ state'{appStateMode = RegularMode}
-      Right Arith -> Right $ state'{appStateMode = ArithMode}
-      Left err -> Left err
+  | otherwise = do
+      command <- parseAppCommand cmd
+      return $ state'{appStateMode = cmdMode command}
 
 regularAppShell :: String -> IO ()
 regularAppShell input = do
