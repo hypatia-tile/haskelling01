@@ -15,7 +15,9 @@ arithAppShell = do
   arithResult <- runExceptT $ evalStateT arithEvalInput []
   case arithResult of
     Left err -> putStrLn $ "Arithmetic shell error: " ++ err
-    Right _ -> putStrLn "Exiting arithmetic shell."
+    Right result -> do
+      putStrLn $ "Result: " ++ show result
+      putStrLn "Exiting arithmetic shell."
 
 evalArith :: [ArithExpr] -> Either String Int
 evalArith exprs = case foldr (flip go) [] exprs of
@@ -27,11 +29,8 @@ evalArith exprs = case foldr (flip go) [] exprs of
   go (ANum x : Sub : rest) (ANum y) = go rest $ ANum (x - y)
   go stack x = x : stack
 
-arithEvalInput :: StateT [ArithExpr] (ExceptT String IO) ()
-arithEvalInput = do
-  exprs' <- arithInputLoop []
-  liftIO $ putStrLn $ "Final expressions: " ++ show exprs'
-  return ()
+arithEvalInput :: StateT [ArithExpr] (ExceptT String IO) Int
+arithEvalInput = arithInputLoop []
  where
   arithInputLoop :: [ArithExpr] -> StateT [ArithExpr] (ExceptT String IO) Int
   arithInputLoop exprs = do
@@ -46,10 +45,7 @@ arithEvalInput = do
           arithInputLoop exprs
       ["add"] -> arithInputLoop (Add : exprs)
       ["sub"] -> arithInputLoop (Sub : exprs)
-      ["eval"] -> do
-        case evalArith exprs of
-          Left err -> do
-            throwError err
-          Right val -> return val
-      _ -> do
-        throwError "Unknown command"
+      ["eval"] -> case evalArith exprs of
+        Left err -> throwError err
+        Right val -> return val
+      _ -> throwError "Unknown command"
