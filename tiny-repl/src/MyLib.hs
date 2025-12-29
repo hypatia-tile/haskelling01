@@ -1,4 +1,4 @@
-module MyLib (AppMode (..), AppState (..), mainLoop) where
+module MyLib (AppMode (..), AppState (..), myApp) where
 
 import Control.Monad (forM_)
 import Control.Monad.Except (ExceptT, runExceptT, throwError)
@@ -6,25 +6,28 @@ import Control.Monad.State.Strict
 import Data.List (find)
 import Repl.Arithmetic
 
-mainLoop :: AppState -> IO ()
-mainLoop initialState = do
-  putStrLn "Input something (or type 'exit' to quit):"
-  input <- getLine
-  result <- runExceptT $ runStateT (interpret input) initialState
-  case result of
-    Left err -> do
-      putStrLn $ "Error: " ++ show err
-      mainLoop initialState
-    Right ((), newState) -> do
-      putStrLn "History so far: "
-      forM_ (commandHistory newState) putStrLn
-      case appStateMode newState of
-        ExitMode -> putStrLn "Exiting..."
-        mode -> do
-          case mode of
-            ArithMode -> arithAppShell
-            RegularMode -> regularAppShell input
-          mainLoop newState
+myApp :: IO ()
+myApp = mainLoop newappState
+ where
+  mainLoop :: AppState -> IO ()
+  mainLoop initialState = do
+    putStrLn "Input something (or type 'exit' to quit):"
+    input <- getLine
+    result <- runExceptT $ runStateT (interpret input) initialState
+    case result of
+      Left err -> do
+        putStrLn $ "Error: " ++ show err
+        mainLoop initialState
+      Right ((), newState) -> do
+        putStrLn "History so far: "
+        forM_ (commandHistory newState) putStrLn
+        case appStateMode newState of
+          ExitMode -> putStrLn "Exiting..."
+          mode -> do
+            case mode of
+              ArithMode -> arithAppShell
+              RegularMode -> regularAppShell input
+            mainLoop newState
 
 interpret :: String -> AppM ()
 interpret input = StateT $ \state' ->
@@ -39,6 +42,9 @@ data AppState
   { commandHistory :: [String]
   , appStateMode :: AppMode
   }
+
+newappState :: AppState
+newappState = AppState [] RegularMode
 
 data AppMode
   = RegularMode
