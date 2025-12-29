@@ -20,14 +20,14 @@ arithAppShell = do
       putStrLn "Exiting arithmetic shell."
 
 evalArith :: [ArithExpr] -> Either String Int
-evalArith exprs = case foldr (flip go) [] exprs of
+evalArith exprs = case foldr (flip applyExp) [] exprs of
   [ANum n] -> Right n
   xs -> Left $ "Stack did not end with a single value\n remaining stack: " ++ show xs
  where
-  go :: [ArithExpr] -> ArithExpr -> [ArithExpr]
-  go (ANum x : Add : rest) (ANum y) = go rest $ ANum (x + y)
-  go (ANum x : Sub : rest) (ANum y) = go rest $ ANum (x - y)
-  go stack x = x : stack
+  applyExp :: [ArithExpr] -> ArithExpr -> [ArithExpr]
+  applyExp (ANum x : Add : rest) (ANum y) = applyExp rest $ ANum (x + y)
+  applyExp (ANum x : Sub : rest) (ANum y) = applyExp rest $ ANum (x - y)
+  applyExp stack x = x : stack
 
 arithEvalInput :: ExceptT String IO Int
 arithEvalInput = arithInputLoop []

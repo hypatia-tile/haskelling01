@@ -1,9 +1,9 @@
-module Repl.Core where
+module Repl.Core (myApp) where
 
 import Control.Monad.Except (runExceptT, throwError)
 import Control.Monad.State.Strict (StateT (..), runStateT)
 import Repl.Arithmetic (arithAppShell)
-import Repl.Command
+import Repl.Command (appCommand)
 import Repl.State
 
 myApp :: IO ()
@@ -29,21 +29,14 @@ myApp = mainLoop newappState
               RegularMode -> regularAppShell input
             mainLoop newState
 
-interpret :: String -> AppM ()
-interpret input = StateT $ \state' ->
-  case appCommand input state' of
-    Left err -> throwError err
-    Right newState -> return ((), newState)
- where
-  appCommand :: String -> AppState -> Either AppError AppState
-  appCommand cmd state'
-    | null cmd = Left (ParseError "Empty command")
-    | otherwise = do
-        command <- parseAppCommand cmd
-        return $ state'{appStateMode = cmdMode command, commandHistory = cmd : commandHistory state'}
+  interpret :: String -> AppM ()
+  interpret input = StateT $ \state' ->
+    case appCommand input state' of
+      Left err -> throwError err
+      Right newState -> return ((), newState)
 
-regularAppShell :: String -> IO ()
-regularAppShell input = do
-  putStrLn "Executing command..."
-  putStrLn $ "You entered: " ++ input
-  putStrLn "Continuing..."
+  regularAppShell :: String -> IO ()
+  regularAppShell input = do
+    putStrLn "Executing command..."
+    putStrLn $ "You entered: " ++ input
+    putStrLn "Continuing..."

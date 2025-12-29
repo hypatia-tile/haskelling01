@@ -1,7 +1,24 @@
-module Repl.Command where
+module Repl.Command (
+  exitCommand,
+  helloCommand,
+  arithCommand,
+  parseAppCommand,
+  appCommand,
+  AppCommand (cmdMode),
+) where
 
 import Data.List (find)
-import Repl.State
+import Repl.State (AppError (..), AppMode (..), AppState (..))
+
+class AppShellCommand a where
+  appCommand :: String -> a -> Either AppError a
+
+instance AppShellCommand AppState where
+  appCommand cmd state'
+    | null cmd = Left (ParseError "Empty command")
+    | otherwise = do
+        command <- parseAppCommand cmd
+        return $ state'{appStateMode = cmdMode command, commandHistory = cmd : commandHistory state'}
 
 data AppCommand = AppCommand
   { cmdName :: String
