@@ -20,7 +20,7 @@ myApp = mainLoop newappState
         mainLoop initialState
       Right ((), newState) -> do
         putStrLn "History so far: "
-        forM_ (commandHistory newState) putStrLn
+        showHist newState
         case appStateMode newState of
           ExitMode -> putStrLn "Exiting..."
           mode -> do
@@ -40,7 +40,7 @@ interpret input = StateT $ \state' ->
     | null cmd = Left (ParseError "Empty command")
     | otherwise = do
         command <- parseAppCommand cmd
-        return $ state'{appStateMode = cmdMode command}
+        return $ state'{appStateMode = cmdMode command, commandHistory = cmd : commandHistory state'}
 
 type AppM = StateT AppState (ExceptT AppError IO)
 
@@ -62,6 +62,18 @@ data AppCommand = AppCommand
   { cmdName :: String
   , cmdMode :: AppMode
   }
+
+class AppShellState a where
+  showHist :: a -> IO ()
+
+instance AppShellState AppState where
+  showHist appState = do
+    let
+      histories :: [(Int, String)]
+      histories = zip [1 ..] (reverse . commandHistory $ appState)
+    putStrLn "Command History: "
+    forM_ histories $ \(i, s) ->
+      putStrLn $ show i ++ ": " ++ s
 
 exitCommand, helloCommand, arithCommand :: AppCommand
 exitCommand = AppCommand "exit" ExitMode
