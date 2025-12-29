@@ -12,7 +12,7 @@ data ArithExpr
 arithAppShell :: IO ()
 arithAppShell = do
   putStrLn "Entering arithmetic shell..."
-  arithResult <- runExceptT $ evalStateT arithEvalInput []
+  arithResult <- runExceptT arithEvalInput
   case arithResult of
     Left err -> putStrLn $ "Arithmetic shell error: " ++ err
     Right result -> do
@@ -29,10 +29,10 @@ evalArith exprs = case foldr (flip go) [] exprs of
   go (ANum x : Sub : rest) (ANum y) = go rest $ ANum (x - y)
   go stack x = x : stack
 
-arithEvalInput :: StateT [ArithExpr] (ExceptT String IO) Int
+arithEvalInput :: ExceptT String IO Int
 arithEvalInput = arithInputLoop []
  where
-  arithInputLoop :: [ArithExpr] -> StateT [ArithExpr] (ExceptT String IO) Int
+  arithInputLoop :: [ArithExpr] -> ExceptT String IO Int
   arithInputLoop exprs = do
     liftIO $ putStrLn $ "Current expressions: " ++ show (reverse exprs)
     liftIO $ putStrLn "Arith> "
