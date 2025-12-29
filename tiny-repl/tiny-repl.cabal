@@ -62,6 +62,9 @@ library
   exposed-modules:
     MyLib
     Repl.Arithmetic
+    Repl.Command
+    Repl.Core
+    Repl.State
 
   -- Modules included in this library but not exported.
   -- other-modules:
