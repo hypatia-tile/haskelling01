@@ -21,13 +21,14 @@ data AppError
   | DomainError String
   deriving (Show)
 
-type AppM = StateT AppState (ExceptT AppError IO)
+type AppM s = StateT s (ExceptT AppError IO)
 
 newappState :: AppState
 newappState = AppState [] RegularMode
 
 class AppShellState a where
   showHist :: a -> IO ()
+  runMode :: a -> AppMode
 
 instance AppShellState AppState where
   showHist appState = do
@@ -37,3 +38,4 @@ instance AppShellState AppState where
     putStrLn "Command History: "
     forM_ histories $ \(i, s) ->
       putStrLn $ show i ++ ": " ++ s
+  runMode = appStateMode

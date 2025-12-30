@@ -5,6 +5,7 @@ module Repl.Command (
   parseAppCommand,
   appCommand,
   AppCommand (cmdMode),
+  AppShellCommand,
 ) where
 
 import Data.List (find)
